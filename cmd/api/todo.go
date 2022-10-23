@@ -8,6 +8,7 @@ import (
 	"time"
 
 	"todo.joanneyong.net/internal/data"
+	"todo.joanneyong.net/internal/validator"
 )
 
 // createTodoHandler for the "POST /v1/todo" endpoint
@@ -23,6 +24,22 @@ func (app *application) createTodoHandler(w http.ResponseWriter, r *http.Request
 	err := app.readJSON(w, r, &input)
 	if err != nil {
 		app.badRequestResponse(w, r, err)
+		return
+	}
+	// Copy the values from the input struct to a new Todo struct
+	todo := &data.Todo{
+		Name:     input.Name,
+		Details:  input.Details,
+		Priority: input.Priority,
+		Status:   input.Status,
+	}
+
+	// Initialize a new Validator instance
+	v := validator.New()
+
+	// Check the map to determine if there were any validation errors
+	if data.ValidateTodo(v, todo); !v.Valid() {
+		app.failedValidationResponse(w, r, v.Errors)
 		return
 	}
 	// Display the request
