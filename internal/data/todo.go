@@ -3,6 +3,7 @@
 package data
 
 import (
+	"database/sql"
 	"time"
 
 	"todo.joanneyong.net/internal/validator"
@@ -32,4 +33,39 @@ func ValidateTodo(v *validator.Validator, todo *Todo) {
 	v.Check(todo.Status != "", "status", "must be provided")
 	v.Check(len(todo.Status) <= 200, "status", "must not be more than 200 bytes long")
 
+}
+
+// Define a TodoModel which wraps a sql.DB connection pool
+type TodoModel struct {
+	DB *sql.DB
+}
+
+// Insert() allows us  to create a new Todo
+func (m TodoModel) Insert(todo *Todo) error {
+	query := `
+		INSERT INTO schools (name, details, priority, status)
+		VALUES ($1, $2, $3, $4)
+		RETURNING id, created_at, version
+	`
+	// Collect the data fields into a slice
+	args := []interface{}{
+		todo.Name, todo.Details,
+		todo.Priority, todo.Status,
+	}
+	return m.DB.QueryRow(query, args...).Scan(&todo.ID, &todo.CreatedAt, &todo.Version)
+}
+
+// Get() allows us to retrieve a specific Todo
+func (m TodoModel) Get(id int64) (*Todo, error) {
+	return nil, nil
+}
+
+// Update() allows us to edit/alter a specific Todo
+func (m TodoModel) Update(todo *Todo) error {
+	return nil
+}
+
+// Delete() removes a specific Todo
+func (m TodoModel) Delete(id int64) error {
+	return nil
 }
