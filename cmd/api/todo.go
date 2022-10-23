@@ -39,7 +39,6 @@ func (app *application) createTodoHandler(w http.ResponseWriter, r *http.Request
 		app.failedValidationResponse(w, r, v.Errors)
 		return
 	}
-
 	// Create a Todo
 	err = app.models.Todos.Insert(todo)
 	if err != nil {
@@ -81,7 +80,6 @@ func (app *application) showTodoHandler(w http.ResponseWriter, r *http.Request) 
 		app.serverErrorResponse(w, r, err)
 	}
 }
-
 func (app *application) updateTodoHandler(w http.ResponseWriter, r *http.Request) {
 	// This method does a partial replacement
 	// Get the id for the todo that needs updating
@@ -102,28 +100,22 @@ func (app *application) updateTodoHandler(w http.ResponseWriter, r *http.Request
 		}
 		return
 	}
-
 	// Create an input struct to hold data read in from the client
 	// We update input struct to use pointers because pointers have a
 	// default value of nil
 	// If a field remains nil then we know that the client did not update it
-	// Create an input struct to hold data read in from the client
 	var input struct {
 		Name     *string `json:"name"`
 		Details  *string `json:"Details"`
 		Priority *string `json:"priority"`
 		Status   *string `json:"status"`
 	}
-
 	// Initialize a new json.Decoder instance
 	err = app.readJSON(w, r, &input)
 	if err != nil {
 		app.badRequestResponse(w, r, err)
 		return
 	}
-
-	// Copy / Update the fields / values in the todo variable using the fields
-	// in the input struct
 	// Check for updates
 	if input.Name != nil {
 		todo.Name = *input.Name
@@ -141,7 +133,6 @@ func (app *application) updateTodoHandler(w http.ResponseWriter, r *http.Request
 	// we send a 422 - Unprocessable Entity respose to the client
 	// Initialize a new Validator instance
 	v := validator.New()
-
 	// Check the map to determine if there were any validation errors
 	if data.ValidateTodo(v, todo); !v.Valid() {
 		app.failedValidationResponse(w, r, v.Errors)
@@ -164,7 +155,6 @@ func (app *application) updateTodoHandler(w http.ResponseWriter, r *http.Request
 		app.serverErrorResponse(w, r, err)
 	}
 }
-
 func (app *application) deleteTodoHandler(w http.ResponseWriter, r *http.Request) {
 	// Get the id for the todo that needs updating
 	id, err := app.readIDParam(r)
@@ -190,4 +180,38 @@ func (app *application) deleteTodoHandler(w http.ResponseWriter, r *http.Request
 	if err != nil {
 		app.serverErrorResponse(w, r, err)
 	}
+}
+
+// The listTodoHandler() allows the client to see a listing of todos
+// based on a set of criteria
+func (app *application) listTodoHandler(w http.ResponseWriter, r *http.Request) {
+	// Create an input struct to hold our query parameters
+	var input struct {
+		Name  string
+		Level string
+		Mode  []string
+		data.Filters
+	}
+	// Initialize a validator
+	v := validator.New()
+	// Get the URL values map
+	qs := r.URL.Query()
+	// Use the helper methods to extract the values
+	input.Name = app.readString(qs, "name", "")
+	input.Level = app.readString(qs, "level", "")
+	input.Mode = app.readCSV(qs, "mode", []string{})
+	// Get the page information
+	input.Filters.Page = app.readInt(qs, "page", 1, v)
+	input.Filters.PageSize = app.readInt(qs, "page_size", 20, v)
+	// Get the sort information
+	input.Filters.Sort = app.readString(qs, "sort", "id")
+	// Specific the allowed sort values
+	input.Filters.SortList = []string{"id", "name", "level", "-id", "-name", "-level"}
+	// Check for validation errors
+	if data.ValidateFilters(v, input.Filters); !v.Valid() {
+		app.failedValidationResponse(w, r, v.Errors)
+		return
+	}
+	// Results dump
+	fmt.Fprintf(w, "%+v\n", input)
 }
