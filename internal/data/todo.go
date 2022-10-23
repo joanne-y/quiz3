@@ -64,8 +64,8 @@ func (m TodoModel) Get(id int64) (*Todo, error) {
 	}
 	// Create the query
 	query := `
-		SELECT id, created_at, name, level, contact, phone, email, website, address, mode, version
-		FROM schools
+		SELECT id, created_at, name, details, priority, status, version
+		FROM todo
 		WHERE id = $1
 	`
 	// Declare a Todo variable to hold the returned data
