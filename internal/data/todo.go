@@ -1,10 +1,8 @@
 // Filename: internal/data/todo.go
-
 package data
 
 import (
 	"database/sql"
-	"errors"
 	"time"
 
 	"todo.joanneyong.net/internal/validator"
@@ -24,16 +22,12 @@ func ValidateTodo(v *validator.Validator, todo *Todo) {
 	// Use the Check() method to execute our validation checks
 	v.Check(todo.Name != "", "name", "must be provided")
 	v.Check(len(todo.Name) <= 200, "name", "must not be more than 200 bytes long")
-
 	v.Check(todo.Details != "", "details", "must be provided")
-	v.Check(len(todo.Details) <= 200, "details", "must not be more than 200 bytes long")
-
+	v.Check(len(todo.Details) <= 300, "details", "must not be more than 300 bytes long")
 	v.Check(todo.Priority != "", "priority", "must be provided")
-	v.Check(len(todo.Priority) <= 200, "priority", "must not be more than 200 bytes long")
-
+	v.Check(len(todo.Priority) <= 100, "priority", "must not be more than 100 bytes long")
 	v.Check(todo.Status != "", "status", "must be provided")
-	v.Check(len(todo.Status) <= 200, "status", "must not be more than 200 bytes long")
-
+	v.Check(len(todo.Status) <= 100, "status", "must not be more than 100 bytes long")
 }
 
 // Define a TodoModel which wraps a sql.DB connection pool
@@ -58,60 +52,12 @@ func (m TodoModel) Insert(todo *Todo) error {
 
 // Get() allows us to retrieve a specific Todo
 func (m TodoModel) Get(id int64) (*Todo, error) {
-	// Ensure that there is a valid id
-	if id < 1 {
-		return nil, ErrRecordNotFound
-	}
-	// Create the query
-	query := `
-		SELECT id, created_at, name, details, priority, status, version
-		FROM todo
-		WHERE id = $1
-	`
-	// Declare a Todo variable to hold the returned data
-	var todo Todo
-	// Execute the query using QueryRow()
-	err := m.DB.QueryRow(query, id).Scan(
-		&todo.ID,
-		&todo.CreatedAt,
-		&todo.Name,
-		&todo.Details,
-		&todo.Priority,
-		&todo.Status,
-		&todo.Version,
-	)
-	// Handle any errors
-	if err != nil {
-		// Check the type of error
-		switch {
-		case errors.Is(err, sql.ErrNoRows):
-			return nil, ErrRecordNotFound
-		default:
-			return nil, err
-		}
-	}
-	// Success
-	return &todo, nil
+	return nil, nil
 }
 
 // Update() allows us to edit/alter a specific Todo
 func (m TodoModel) Update(todo *Todo) error {
-	// Create a query
-	query := `
-		UPDATE todo
-		SET name = $1, details = $2, priority = $3,
-		    status = $4, version = $5, version = version + 1
-		WHERE id = $6
-		RETURNING version
-	`
-	args := []interface{}{
-		todo.Name,
-		todo.Details,
-		todo.Priority,
-		todo.Status,
-		todo.ID,
-	}
-	return m.DB.QueryRow(query, args...).Scan(&todo.Version)
+	return nil
 }
 
 // Delete() removes a specific Todo
