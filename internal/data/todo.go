@@ -1,7 +1,7 @@
-// Filename: internal/data/todo.go
 package data
 
 import (
+	"context"
 	"database/sql"
 	"errors"
 	"time"
@@ -43,17 +43,21 @@ func (m TodoModel) Insert(todo *Todo) error {
 		VALUES ($1, $2, $3, $4)
 		RETURNING id, created_at, version
 	`
+	// Create a context
+	ctx, cancel := context.WithTimeout(context.Background(), 3*time.Second)
+	// Cleanup to prevent memory leaks
+	defer cancel()
+
 	// Collect the data fields into a slice
 	args := []interface{}{
 		todo.Name, todo.Details,
 		todo.Priority, todo.Status,
 	}
-	return m.DB.QueryRow(query, args...).Scan(&todo.ID, &todo.CreatedAt, &todo.Version)
+	return m.DB.QueryRowContext(ctx, query, args...).Scan(&todo.ID, &todo.CreatedAt, &todo.Version)
 }
 
 // Get() allows us to retrieve a specific Todo
 func (m TodoModel) Get(id int64) (*Todo, error) {
-	return nil, nil
 	// Ensure that there is a valid id
 	if id < 1 {
 		return nil, ErrRecordNotFound
@@ -66,8 +70,14 @@ func (m TodoModel) Get(id int64) (*Todo, error) {
 	`
 	// Declare a Todo variable to hold the returned data
 	var todo Todo
+
+	// Create a context
+	ctx, cancel := context.WithTimeout(context.Background(), 3*time.Second)
+	// Cleanup to prevent memory leaks
+	defer cancel()
+
 	// Execute the query using QueryRow()
-	err := m.DB.QueryRow(query, id).Scan(
+	err := m.DB.QueryRowContext(ctx, query, id).Scan(
 		&todo.ID,
 		&todo.CreatedAt,
 		&todo.Name,
@@ -102,6 +112,12 @@ func (m TodoModel) Update(todo *Todo) error {
 		AND version = $6
 		RETURNING version
 	`
+
+	// Create a context
+	ctx, cancel := context.WithTimeout(context.Background(), 3*time.Second)
+	// Cleanup to prevent memory leaks
+	defer cancel()
+
 	args := []interface{}{
 		todo.Name,
 		todo.Details,
@@ -111,7 +127,7 @@ func (m TodoModel) Update(todo *Todo) error {
 		todo.Version,
 	}
 	// Check for edit conflicts
-	err := m.DB.QueryRow(query, args...).Scan(&todo.Version)
+	err := m.DB.QueryRowContext(ctx, query, args...).Scan(&todo.Version)
 	if err != nil {
 		switch {
 		case errors.Is(err, sql.ErrNoRows):
@@ -134,8 +150,14 @@ func (m TodoModel) Delete(id int64) error {
 		DELETE FROM todo
 		WHERE id = $1
 	`
+
+	// Create a context
+	ctx, cancel := context.WithTimeout(context.Background(), 3*time.Second)
+	// Cleanup to prevent memory leaks
+	defer cancel()
+
 	// Execute the query
-	result, err := m.DB.Exec(query, id)
+	result, err := m.DB.ExecContext(ctx, query, id)
 	if err != nil {
 		return err
 	}
