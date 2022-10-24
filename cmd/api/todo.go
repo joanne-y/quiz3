@@ -212,13 +212,13 @@ func (app *application) listTodoHandler(w http.ResponseWriter, r *http.Request) 
 	}
 	// Results dump
 	// Get a listing of all todos
-	todos, err := app.models.Todos.GetAll(input.Name, input.Status, input.Filters)
+	todos, metadata, err := app.models.Todos.GetAll(input.Name, input.Status, input.Filters)
 	if err != nil {
 		app.serverErrorResponse(w, r, err)
 		return
 	}
 	// Send a JSON response containg all the todos
-	err = app.writeJSON(w, http.StatusOK, envelope{"todos": todos}, nil)
+	err = app.writeJSON(w, http.StatusOK, envelope{"todos": todos, "metadata": metadata}, nil)
 	if err != nil {
 		app.serverErrorResponse(w, r, err)
 		return
