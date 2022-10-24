@@ -1,4 +1,5 @@
 // Filename: internal/data/todo.go
+
 package data
 
 import (
@@ -25,10 +26,13 @@ func ValidateTodo(v *validator.Validator, todo *Todo) {
 	// Use the Check() method to execute our validation checks
 	v.Check(todo.Name != "", "name", "must be provided")
 	v.Check(len(todo.Name) <= 200, "name", "must not be more than 200 bytes long")
+
 	v.Check(todo.Details != "", "details", "must be provided")
 	v.Check(len(todo.Details) <= 300, "details", "must not be more than 300 bytes long")
+
 	v.Check(todo.Priority != "", "priority", "must be provided")
 	v.Check(len(todo.Priority) <= 100, "priority", "must not be more than 100 bytes long")
+
 	v.Check(todo.Status != "", "status", "must be provided")
 	v.Check(len(todo.Status) <= 100, "status", "must not be more than 100 bytes long")
 }
@@ -71,10 +75,12 @@ func (m TodoModel) Get(id int64) (*Todo, error) {
 	`
 	// Declare a Todo variable to hold the returned data
 	var todo Todo
+
 	// Create a context
 	ctx, cancel := context.WithTimeout(context.Background(), 3*time.Second)
 	// Cleanup to prevent memory leaks
 	defer cancel()
+
 	// Execute the query using QueryRow()
 	err := m.DB.QueryRowContext(ctx, query, id).Scan(
 		&todo.ID,
@@ -119,6 +125,7 @@ func (m TodoModel) Update(todo *Todo) error {
 		todo.ID,
 		todo.Version,
 	}
+
 	// Create a context
 	ctx, cancel := context.WithTimeout(context.Background(), 3*time.Second)
 	// Cleanup to prevent memory leaks
@@ -147,10 +154,12 @@ func (m TodoModel) Delete(id int64) error {
 		DELETE FROM todo
 		WHERE id = $1
 	`
+
 	// Create a context
 	ctx, cancel := context.WithTimeout(context.Background(), 3*time.Second)
 	// Cleanup to prevent memory leaks
 	defer cancel()
+
 	// Execute the query
 	result, err := m.DB.ExecContext(ctx, query, id)
 	if err != nil {
@@ -170,8 +179,10 @@ func (m TodoModel) Delete(id int64) error {
 }
 
 // The GetAll() method retuns a list of all the todos sorted by id
-func (m TodoModel) GetAll(name string, priority string, filters Filters) ([]*Todo, Metadata, error) {
+func (m TodoModel) GetAll(name string, status string, filters Filters) ([]*Todo, Metadata, error) {
+
 	// Construct the query
+
 	query := fmt.Sprintf(`
 		SELECT COUNT(*) OVER(), id, created_at, name, details,
 		    priority, status, version
@@ -180,11 +191,12 @@ func (m TodoModel) GetAll(name string, priority string, filters Filters) ([]*Tod
 		AND (to_tsvector('simple', priority) @@ plainto_tsquery('simple', $2) OR $2 = '')
 		ORDER BY %s %s, id ASC
 		LIMIT $3 OFFSET $4`, filters.sortColumn(), filters.sortOrder())
+
 	// Create a 3-second-timout context
 	ctx, cancel := context.WithTimeout(context.Background(), 3*time.Second)
 	defer cancel()
 	// Execute the query
-	args := []interface{}{name, priority, filters.limit(), filters.offset()}
+	args := []interface{}{name, status, filters.limit(), filters.offset()}
 	rows, err := m.DB.QueryContext(ctx, query, args...)
 	if err != nil {
 		return nil, Metadata{}, err
@@ -218,6 +230,7 @@ func (m TodoModel) GetAll(name string, priority string, filters Filters) ([]*Tod
 	if err = rows.Err(); err != nil {
 		return nil, Metadata{}, err
 	}
+	metadata := calculateMetadata(totalRecords, filters.Page, filters.PageSize)
 	// Return the slice of Todos
-	return nil, Metadata{}, err
+	return todos, metadata, nil
 }
