@@ -54,6 +54,7 @@ func main() {
 	if err != nil {
 		logger.Fatal(err)
 	}
+
 	defer db.Close()
 	// Log the successful connection pool
 	logger.Println("database connection pool established")
@@ -67,6 +68,7 @@ func main() {
 	// Create our new servemux
 	mux := http.NewServeMux()
 	mux.HandleFunc("/v1/healthcheck", app.healthcheckHandler)
+
 	//Create our HTTP server
 	srv := &http.Server{
 		Addr:         fmt.Sprintf(":%d", cfg.port),
@@ -75,6 +77,7 @@ func main() {
 		ReadTimeout:  10 * time.Second,
 		WriteTimeout: 30 * time.Second,
 	}
+
 	// Start our server
 	logger.Printf("starting %s server on %s", cfg.env, srv.Addr)
 	err = srv.ListenAndServe()
@@ -97,6 +100,7 @@ func openDB(cfg config) (*sql.DB, error) {
 	// Create a context with a 5-second timeout deadline
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 	defer cancel()
+
 	err = db.PingContext(ctx)
 	if err != nil {
 		return nil, err
